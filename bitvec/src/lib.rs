@@ -10,21 +10,19 @@ impl BitVec {
     }
 
     pub fn resize(&mut self, n: usize) {
+        let rest = n % BITS_IN_NUM;
         let limbs = n / BITS_IN_NUM +
-            if n % BITS_IN_NUM > 0 { 1 } else { 0 };
+            if rest > 0 { 1 } else { 0 };
 
         if n > self.size {
             self.limbs.resize(limbs, 0);
         } else {
+            if limbs > 0 && rest > 0 {
+                let mask_bits = (BITS_IN_NUM - rest) as u32;
+                self.limbs[limbs-1] &= !0 >> mask_bits;
+            }
             self.limbs.truncate(limbs);
         }
-        self.size = n;
-    }
-
-    pub fn truncate(&mut self, n: usize) {
-        let limbs = n / BITS_IN_NUM +
-            if n % BITS_IN_NUM > 0 { 1 } else { 0 };
-        self.limbs.truncate(limbs);
         self.size = n;
     }
 
