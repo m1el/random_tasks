@@ -18,8 +18,7 @@ impl BitVec {
             self.limbs.resize(limbs, 0);
         } else {
             if limbs > 0 && rest > 0 {
-                let mask_bits = (BITS_IN_NUM - rest) as u32;
-                self.limbs[limbs-1] &= !0 >> mask_bits;
+                self.limbs[limbs-1] &= !0 >> (BITS_IN_NUM - rest);
             }
             self.limbs.truncate(limbs);
         }
