@@ -1,3 +1,4 @@
+use std::io::{self, Write};
 use std::ops::{Add, Mul};
 
 #[derive(Copy, Clone)]
@@ -45,17 +46,15 @@ fn test_mandelbrot(c: Complex, limit: u64) -> u64 {
 }
 
 fn main() {
-    for y in 0..100 {
-        for x in 0..100 {
+    let stdout = io::stdout();
+    let mut handle = stdout.lock();
+    for y in 0..1000 {
+        for x in 0..1000 {
             let c = Complex {
-                im: (y as f64/ 25.0) - 2.0 ,
-                re: (x as f64/ 25.0) - 2.0 };
-            if test_mandelbrot(c, 1000) == 1000 {
-                print!("#")
-            } else {
-                print!(" ")
-            }
+                im: (y as f64/ 250.0) - 2.0 ,
+                re: (x as f64/ 250.0) - 2.0 };
+            let v = (test_mandelbrot(c, 1000) % 256) as u8;
+            let _ = handle.write(&vec![255, v,v,v]);
         }
-        println!("");
     }
 }
