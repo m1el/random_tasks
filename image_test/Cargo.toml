@@ -1,0 +1,10 @@
+[package]
+name = "itest"
+version = "0.1.0"
+authors = ["Igor Null <m1el.2027@gmail.com>"]
+
+[dependencies]
+gl = "0.1.0"
+glutin = "*"
+libc = "*"
+tempfile = "=1.1.1"
