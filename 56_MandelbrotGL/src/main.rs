@@ -223,7 +223,7 @@ fn gen_mandelbrot(rect: &Rect) -> Vec<u8> {
             let p = ((y * rect.width + x) * 4) as usize;
             let c = cplx((x as f64)/(rect.width as f64)*4.0-3.0,
                          (y as f64)/(rect.height as f64)*3.0-1.5);
-            let v: u8 = (test_mandelbrot(c, 255) % 255) as u8;
+            let v: u8 = (test_mandelbrot(c, 255) % 256) as u8;
             data[p+0] = v;
             data[p+1] = v;
             data[p+2] = v;
@@ -303,7 +303,6 @@ fn main() {
 
     unsafe {
         gl::Enable(gl::FRAMEBUFFER_SRGB);
-        gl::Enable(gl::TEXTURE_2D);
         gl::ClearColor(0.3333, 0.3333, 0.3333, 1.0);
         //gl::Enable(gl::BLEND);
         // Create Vertex Array Object
