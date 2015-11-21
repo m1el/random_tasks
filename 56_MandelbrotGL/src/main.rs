@@ -220,9 +220,11 @@ fn gen_mandelbrot(rect: &Rect) -> Vec<u8> {
     data.resize((rect.width * rect.height * 4) as usize, 255);
     for y in 0..rect.height {
         for x in 0..rect.width {
+            let zoom = if rect.height < rect.width { rect.height }
+                       else { rect.width };
             let p = ((y * rect.width + x) * 4) as usize;
-            let c = cplx((x as f64)/(rect.width as f64)*4.0-3.0,
-                         (y as f64)/(rect.height as f64)*3.0-1.5);
+            let c = cplx(((x as f64) - (rect.width as f64)/2.0)/(zoom as f64)*4.0,
+                         ((y as f64) - (rect.height as f64)/2.0)/(zoom as f64)*4.0);
             let v: u8 = (test_mandelbrot(c, 255) % 256) as u8;
             data[p+0] = v;
             data[p+1] = v;
