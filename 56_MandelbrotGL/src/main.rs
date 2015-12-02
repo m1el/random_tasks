@@ -9,6 +9,7 @@ use cplx::*;
 use gl::types::*;
 use std::ptr;
 use std::str;
+use std::cmp::{min};
 use std::ffi::CString;
 
 use std::thread;
@@ -55,6 +56,13 @@ struct Texture {
 struct Rect {
     width: u32,
     height: u32,
+}
+
+impl Rect {
+    fn fit_square(&self) -> Rect {
+        let size = min(self.width, self.height);
+        Rect { width: size, height: size }
+    }
 }
 
 impl GlCtx {
@@ -158,12 +166,6 @@ impl Drop for GlCtx {
     } }
 }
 
-fn render()
-{ unsafe {
-    gl::Clear(gl::COLOR_BUFFER_BIT);
-    gl::DrawArrays(gl::TRIANGLES, 0, 6);
-} }
-
 fn test_mandelbrot(c: Complex, limit: u64) -> u64 {
     let mut z = cplx(0.0, 0.0);
     for i in 0..limit {
@@ -239,6 +241,22 @@ impl ProcStatus {
     }
 }
 
+fn set_aspect(program: u32, rect: &Rect)
+{ unsafe {
+    let square = rect.fit_square();
+    let zx = (square.width as f32) / (rect.width as f32);
+    let zy = (square.height as f32) / (rect.height as f32);
+    let aspect_loc = gl::GetUniformLocation(
+        program, CString::new("uAspect").unwrap().as_ptr());
+    gl::Uniform2f(aspect_loc, zx, zy);
+} }
+
+fn render()
+{ unsafe {
+    gl::Clear(gl::COLOR_BUFFER_BIT);
+    gl::DrawArrays(gl::TRIANGLES, 0, 6);
+} }
+
 fn main() {
     let float_sz: i32 = mem::size_of::<GLfloat>() as i32;
 
@@ -258,16 +276,22 @@ fn main() {
         Err(x) => panic!(x),
     };
 
-    let rect = Rect { width: 256, height: 256 };
-    let data = gen_mandelbrot(&rect);
-    let mut tex = ctx.make_texture(&data, &rect);
+    let mut rect =
+        match window.get_inner_size_pixels() {
+            Some((w,h)) => Rect{ width: w, height: h },
+            None => Rect{ width: 256, height: 256 },
+        };
+
+    let square = rect.fit_square();
+    let data = gen_mandelbrot(&square);
+    let mut tex = ctx.make_texture(&data, &square);
 
     let mut vao = 0;
     let mut vbo = 0;
 
     unsafe {
         gl::Enable(gl::FRAMEBUFFER_SRGB);
-        gl::ClearColor(0.3333, 0.3333, 0.3333, 1.0);
+        gl::ClearColor(0.0, 0.0, 0.0, 1.0);
         //gl::Enable(gl::BLEND);
         // Create Vertex Array Object
         gl::GenVertexArrays(1, &mut vao);
@@ -311,6 +335,7 @@ fn main() {
             program, CString::new("uTexture").unwrap().as_ptr());
         gl::Uniform1i(tex_loc, 0);
     }
+    set_aspect(program, &rect);
 
     let (size_tx, size_rx) = channel::<Rect>();
     let (data_tx, data_rx) = channel::<(Rect, Vec<u8>)>();
@@ -358,9 +383,10 @@ fn main() {
                 },
                 Event::Resized(_, _) => unsafe {
                     if let Some((w, h)) = window.get_inner_size_pixels() {
-                        let r = Rect { width: w, height: h };
+                        rect = Rect { width: w, height: h };
                         gl::Viewport(0, 0, w as i32, h as i32);
-                        proc_status.push(&r, &size_tx);
+                        set_aspect(program, &rect);
+                        proc_status.push(&rect.fit_square(), &size_tx);
                     }
                 },
                 _ => ()
