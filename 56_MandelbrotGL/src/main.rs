@@ -2,7 +2,10 @@ extern crate gl;
 extern crate glutin;
 extern crate libc;
 
+mod cplx;
+
 use glutin::*;
+use cplx::*;
 use gl::types::*;
 use std::ptr;
 use std::str;
@@ -161,49 +164,6 @@ fn render()
     gl::DrawArrays(gl::TRIANGLES, 0, 6);
 } }
 
-use std::ops::{Add, Mul};
-
-#[derive(Copy, Clone)]
-struct Complex {
-    re: f64,
-    im: f64,
-}
-
-impl Complex {
-    #[inline(always)]
-    fn dot(&self) -> f64 {
-        (self.re * self.re + self.im * self.im)
-    }
-
-    fn abs(&self) -> f64 {
-        self.dot().sqrt()
-    }
-}
-
-#[inline(always)]
-fn cplx(re: f64, im: f64) -> Complex {
-    Complex { re: re, im: im }
-}
-
-impl Add for Complex {
-    type Output = Complex;
-
-    #[inline(always)]
-    fn add(self, other: Complex) -> Complex {
-        cplx(self.re + other.re, self.im + other.im)
-    }
-}
-
-impl Mul for Complex {
-    type Output = Complex;
-
-    #[inline(always)]
-    fn mul(self, other: Complex) -> Complex {
-        cplx(self.re * other.re - self.im * other.im,
-             self.im * other.re + self.re * other.im)
-    }
-}
-
 fn test_mandelbrot(c: Complex, limit: u64) -> u64 {
     let mut z = cplx(0.0, 0.0);
     for i in 0..limit {
@@ -243,35 +203,37 @@ enum ProcStatus {
 
 impl ProcStatus {
     fn push(&mut self, r: &Rect, tx: &Sender<Rect>) {
+        use ProcStatus::*;
         match self.clone() {
-            ProcStatus::Idle => {
+            Idle => {
                 let _ = tx.send(r.clone());
-                *self = ProcStatus::Processing(r.clone());
+                *self = Processing(r.clone());
             },
-            ProcStatus::Processing(ref old) => {
+            Processing(ref old) => {
                 if *old != *r {
-                    *self = ProcStatus::Queue(r.clone());
+                    *self = Queue(r.clone());
                 }
             },
-            ProcStatus::Queue(ref old) => {
+            Queue(ref old) => {
                 if *old != *r {
-                    *self = ProcStatus::Queue(r.clone());
+                    *self = Queue(r.clone());
                 }
             },
         }
     }
 
     fn dequeue(&mut self, tx: &Sender<Rect>) {
+        use ProcStatus::*;
         match self.clone() {
-            ProcStatus::Idle => {
+            Idle => {
                 panic!("invalid state for dequeue!");
             },
-            ProcStatus::Processing(_) => {
-                *self = ProcStatus::Idle;
+            Processing(_) => {
+                *self = Idle;
             },
-            ProcStatus::Queue(ref r) => {
+            Queue(ref r) => {
                 let _ = tx.send(r.clone());
-                *self = ProcStatus::Processing(r.clone());
+                *self = Processing(r.clone());
             },
         }
     }
